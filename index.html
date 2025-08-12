@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>字符串工具箱 — 纯前端</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#38bdf8;--accent-2:#60a5fa}
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    body{background:linear-gradient(180deg,#071025 0%, #071a2a 100%);color:#e6eef6;padding:24px}
+    .wrap{max-width:1100px;margin:0 auto}
+    h1{margin:0 0 14px;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    textarea{width:100%;height:320px;padding:10px;border-radius:8px;background:#071a2a;border:1px solid rgba(255,255,255,.04);color:#dbeafe;resize:vertical;font-family:SFMono-Regular,Menlo,monospace;font-size:13px}
+    .controls{display:flex;flex-wrap:wrap;gap:8px}
+    button{background:linear-gradient(180deg,var(--accent),var(--accent-2));border:0;padding:8px 10px;border-radius:7px;color:#052331;cursor:pointer;font-weight:600}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.06);color:var(--muted);font-weight:600}
+    .small{padding:6px 8px;font-size:13px}
+    .output{height:320px;overflow:auto;padding:10px;border-radius:8px;background:#071a2a;border:1px solid rgba(255,255,255,.03);white-space:pre-wrap;font-family:SFMono-Regular,Menlo,monospace;font-size:13px;color:#cfe9ff}
+    .row{display:flex;gap:8px;align-items:center}
+    .mb{margin-bottom:12px}
+    label{color:var(--muted);font-size:12px}
+    select,input[type=text]{background:transparent;border:1px solid rgba(255,255,255,.04);padding:6px;border-radius:6px;color:#cfe9ff}
+    .footer{margin-top:12px;color:var(--muted);font-size:13px}
+    .ops{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .left-col{display:flex;flex-direction:column;gap:8px}
+    .right-col{display:flex;flex-direction:column;gap:8px}
+    .instructions{margin-bottom:18px;color:var(--muted);font-size:13px;line-height:1.6}
+    .main-content{display:flex;flex-direction:column;gap:18px}
+    .io-container{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .file-actions{display:flex;gap:8px;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>字符串工具箱 — 纯前端（单文件）</h1>
+    
+    <div class="card instructions">
+      <label>使用说明</label>
+      <div style="margin-top:8px">
+        <ul>
+          <li>这是一个完全前端运行的工具，很多操作无需联网。</li>
+          <li>YAML 格式化使用了 <code>js-yaml</code>（CDN），XML 格式化使用了 <code>vkBeautify</code>。</li>
+          <li>JSON / YAML / XML 格式化会尝试解析输入并美化，失败时会把错误显示在输出区域。</li>
+          <li>如果需要更多自定义（比如特定缩进或规则），告诉我我可以帮你加。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <!-- 操作按钮区域 -->
+      <div class="card">
+        <label>文本操作</label>
+        <div class="ops" style="margin-top:8px">
+          <button class="small" onclick="convertEscapedToReal()">把 \n 等转义序列 → 真实换行</button>
+          <button class="small" onclick="convertRealToEscaped()">把真实换行 → \\n 等转义序列</button>
+
+          <button class="small" onclick="doRemoveNewlines()">去除换行符（合并为一行）</button>
+          <button class="small" onclick="doNormalizeNewlines()">规范化换行（\r\n → \n）</button>
+
+          <button class="small" onclick="doEscapeString()">字符串转义（JS/JSON）</button>
+          <button class="small" onclick="doUnescapeString()">字符串反转义</button>
+
+          <button class="small" onclick="doHtmlEscape()">HTML/XML 转义</button>
+          <button class="small" onclick="doHtmlUnescape()">HTML/XML 反转义</button>
+
+          <button class="small" onclick="doNewlineToBr()">换行 → &lt;br&gt;</button>
+          <button class="small" onclick="doBrToNewline()">&lt;br&gt; → 换行</button>
+
+          <button class="small" onclick="formatJSON()">JSON 格式化</button>
+          <button class="small" onclick="formatYAML()">YAML 格式化</button>
+
+          <button class="small" onclick="formatXML()">XML 格式化</button>
+          <button class="small" onclick="doXmlEscape()">XML 转义</button>
+
+          <button class="small" onclick="doBase64Encode()">Base64 编码</button>
+          <button class="small" onclick="doBase64Decode()">Base64 解码</button>
+
+          <button class="small" onclick="doUrlEncode()">URL 编码</button>
+          <button class="small" onclick="doUrlDecode()">URL 解码</button>
+
+          <button class="small" onclick="doToUpper()">全部大写</button>
+          <button class="small" onclick="doToLower()">全部小写</button>
+
+          <button class="small" onclick="doTrim()">Trim（去首尾空白）</button>
+          <button class="small" onclick="doSortLines()">按行排序（去重选项见右侧）</button>
+        </div>
+      </div>
+
+      <!-- 输入输出区域 -->
+      <div class="io-container">
+        <!-- 左侧输入区域 -->
+        <div class="card">
+          <label>输入（支持粘贴或打开文件）</label>
+          <textarea id="input" placeholder="在此粘贴文本 / JSON / XML / YAML ..." style="margin-top:8px;height:300px"></textarea>
+          <div class="file-actions">
+            <input type="file" id="fileInput" />
+            <button class="btn-ghost small" onclick="doLoadFile()">加载文件到输入</button>
+          </div>
+        </div>
+
+        <!-- 右侧输出区域 -->
+        <div class="card">
+          <label>输出（结果）</label>
+          <div id="output" class="output" style="margin-top:8px;height:300px"></div>
+          <div class="file-actions">
+            <button class="btn-ghost small" onclick="doCopyOutput()">复制输出</button>
+            <button class="btn-ghost small" onclick="doDownloadOutput()">下载输出 (.txt)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 选项面板和其他操作 -->
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:18px">
+        <div class="card">
+          <label>选项面板</label>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            <label><input type="checkbox" id="dedupe"> 去重（按行）</label>
+            <label><input type="checkbox" id="keepOrder"> 保持原顺序（去重时）</label>
+            <label>JSON 输出: <select id="jsonMode"><option value="pretty">美化（2 空格）</option><option value="compact">紧凑（单行）</option></select></label>
+            <label>YAML 输出: <select id="yamlMode"><option value="pretty">美化</option><option value="compact">紧凑</option></select></label>
+            <label>XML 输出: <select id="xmlMode"><option value="pretty">美化</option><option value="compact">紧凑</option></select></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <label>其他常用操作</label>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            <button class="small" onclick="doCount()">统计：字数 / 行数 / 唯一行数</button>
+            <button class="small" onclick="doExtractLines()">提取行（包含关键字）</button>
+            <input type="text" id="extractKeyword" placeholder="输入关键字并点击提取" />
+            <button class="small" onclick="doPrettyPrintSQL()">SQL 简单美化（缩进）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">提示：把文件保存为 <code>string-tools.html</code> 后在浏览器中打开即可。本页面不会上传任何内容。</div>
+  </div>
+
+  <!-- 引入依赖（CDN） -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script>
+    // 很多实用函数
+    // 把字面转义序列（\n \r \t 等）转换为真实字符
+    function convertEscapedToReal() {
+      const s = getInput();
+      // 优先尝试 JSON.parse trick（对单行常见字符串最稳）
+      if (!s.includes('\n') && !s.includes('\r')) {
+        try {
+          // 把输入当作 JS/JSON 字符串内容来解析转义
+          setOutput(JSON.parse('"' + s.replace(/"/g, '\\"') + '"'));
+          return;
+        } catch (e) {
+          // 解析失败就退回到手工替换
+        }
+      }
+      // 手工替换常见的转义序列（顺序注意：把 \\ 置后）
+      const res = s
+              .replace(/\\r/g, '\r')
+              .replace(/\\n/g, '\n')
+              .replace(/\\t/g, '\t')
+              .replace(/\\b/g, '\b')
+              .replace(/\\f/g, '\f')
+              .replace(/\\v/g, '\v')
+              .replace(/\\0/g, '\0')
+              .replace(/\\'/g, "'")
+              .replace(/\\"/g, '"')
+              // 最后把双反斜杠 \\ -> \
+              .replace(/\\\\/g, '\\');
+      setOutput(res);
+    }
+
+    // 把真实换行/制表等转回可见的转义序列（反向操作）
+    function convertRealToEscaped() {
+      const s = getInput();
+      // 先把反斜杠转义，避免冲突
+      const res = s
+              .replace(/\\/g, '\\\\')
+              .replace(/\r/g, '\\r')
+              .replace(/\n/g, '\\n')
+              .replace(/\t/g, '\\t')
+              .replace(/\x08/g, '\\b')  // 退格符，正确写法
+              .replace(/\f/g, '\\f');
+      setOutput(res);
+    }
+    function getInput(){return document.getElementById('input').value}
+    function setOutput(s){document.getElementById('output').textContent = s}
+
+    function doRemoveNewlines(){ setOutput(getInput().replace(/\r?\n/g, '')) }
+    function doNormalizeNewlines(){ setOutput(getInput().replace(/\r\n/g,'\n')) }
+
+    function doEscapeString(){
+      // JS/JSON 转义（把文本变成 JSON 字符串内的值）
+      try{ const s = JSON.stringify(getInput()); setOutput(s) }catch(e){ setOutput('转义失败: '+e.message) }
+    }
+    function doUnescapeString(){
+      // 反转义，支持两种常见形式："..." 或 raw with escape sequences
+      const v = getInput().trim();
+      try{
+        if (/^".*"$/s.test(v) || /^'.*'$/s.test(v)){
+          setOutput(JSON.parse(v))
+        } else {
+          // 尝试用 eval-like JSON.parse on quoted
+          setOutput(v.replace(/\\n/g,'\n').replace(/\\r/g,'\r').replace(/\\t/g,'\t'))
+        }
+      }catch(e){ setOutput('反转义失败: '+e.message) }
+    }
+
+    function doHtmlEscape(){
+      const s = getInput();
+      const m = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#39;" };
+      setOutput(s.replace(/[&<>\"']/g, c=>m[c]))
+    }
+    function doHtmlUnescape(){
+      const s = getInput();
+      const m = { '&amp;':'&', '&lt;':'<', '&gt;':'>', '&quot;':'"', '&#39;':"'" };
+      setOutput(s.replace(/&(amp|lt|gt|quot|#39);/g, mentry=>m[mentry] || m['&'+mentry+';']))
+    }
+
+    function doNewlineToBr(){ setOutput(getInput().replace(/\r?\n/g,'<br>')) }
+    function doBrToNewline(){ setOutput(getInput().replace(/<br\s*\/?>/gi,'\n')) }
+
+    function formatJSON(){
+      const mode = document.getElementById('jsonMode').value
+      try{
+        const v = getInput().trim();
+        const obj = JSON.parse(v);
+        setOutput(mode === 'pretty' ? JSON.stringify(obj, null, 2) : JSON.stringify(obj))
+      }catch(e){ setOutput('JSON 解析失败: '+e.message) }
+    }
+
+    function formatYAML(){
+      const mode = document.getElementById('yamlMode').value
+      try{
+        const v = getInput().trim();
+        // 尝试 parse 为对象，然后重新 dump
+        const obj = jsyaml.load(v);
+        const dump = jsyaml.dump(obj, {noRefs:true, indent:2});
+        setOutput(mode==='pretty' ? dump : dump.replace(/\n\s+/g,' ').trim())
+      }catch(e){ setOutput('YAML 解析失败: '+e.message) }
+    }
+
+    // 简单的 XML 美化（不依赖外部库）
+    function formatXML(){
+      const mode = document.getElementById('xmlMode').value
+      let s = getInput().trim();
+      try{
+        // 把多个空白换成单空格，方便解析
+        // 使用 DOMParser 在浏览器中格式化
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(s, 'application/xml');
+        const err = doc.getElementsByTagName('parsererror');
+        if (err.length){ throw new Error(err[0].textContent || 'XML 解析错误') }
+        function serialize(node, indent){
+          let out = '';
+          if (node.nodeType === 3) { // text
+            const t = node.nodeValue.trim();
+            if (t) out += indent + t + '\n';
+            return out;
+          }
+          if (node.nodeType !== 1) return out;
+          out += indent + '<' + node.nodeName;
+          for (let i=0;i<node.attributes.length;i++){ const at = node.attributes[i]; out += ' ' + at.name + '="'+at.value+'"' }
+          const children = Array.from(node.childNodes).filter(n=> !(n.nodeType===3 && n.nodeValue.trim()===''));
+          if (children.length===0){ out += '/>\n'; return out }
+          out += '>\n';
+          for (const c of children){ out += serialize(c, indent + '  ') }
+          out += indent + '</' + node.nodeName + '>\n';
+          return out;
+        }
+        const root = doc.documentElement;
+        let pretty = serialize(root, '');
+        if (mode==='compact') pretty = pretty.replace(/\n\s*/g,' ').trim();
+        setOutput(pretty);
+      }catch(e){ setOutput('XML 解析失败: '+e.message) }
+    }
+
+    function doXmlEscape(){
+      // 与 HTML 类似
+      doHtmlEscape()
+    }
+
+    // Base64
+    function doBase64Encode(){ try{ setOutput(btoa(unescape(encodeURIComponent(getInput())))) }catch(e){ setOutput('Base64 编码失败: '+e.message) } }
+    function doBase64Decode(){ try{ setOutput(decodeURIComponent(escape(atob(getInput())))) }catch(e){ setOutput('Base64 解码失败: '+e.message) } }
+
+    // URL
+    function doUrlEncode(){ setOutput(encodeURIComponent(getInput())) }
+    function doUrlDecode(){ try{ setOutput(decodeURIComponent(getInput())) }catch(e){ setOutput('URL 解码失败: '+e.message) } }
+
+    // Case & trim
+    function doToUpper(){ setOutput(getInput().toUpperCase()) }
+    function doToLower(){ setOutput(getInput().toLowerCase()) }
+    function doTrim(){ setOutput(getInput().trim()) }
+
+    // 行处理
+    function doSortLines(){
+      const dedupe = document.getElementById('dedupe').checked;
+      const keepOrder = document.getElementById('keepOrder').checked;
+      const lines = getInput().split(/\r?\n/);
+      let res = lines.slice();
+      if (dedupe){
+        if (keepOrder){
+          const seen = new Set(); const arr = [];
+          for (const l of res){ if (!seen.has(l)){ seen.add(l); arr.push(l) } }
+          res = arr;
+        } else {
+          res = Array.from(new Set(res)).sort();
+        }
+      }
+      setOutput(res.join('\n'))
+    }
+
+    function doCount(){
+      const text = getInput();
+      const chars = text.length;
+      const lines = text === '' ? 0 : text.split(/\r?\n/).length;
+      const unique = new Set(text.split(/\r?\n/)).size;
+      setOutput(`字符数: ${chars}\n行数: ${lines}\n唯一行: ${unique}`)
+    }
+
+    function doExtractLines(){
+      const kw = document.getElementById('extractKeyword').value;
+      if (!kw) return setOutput('请在右侧输入关键字后点击提取');
+      const lines = getInput().split(/\r?\n/).filter(l=> l.includes(kw));
+      setOutput(lines.join('\n'))
+    }
+
+    function doPrettyPrintSQL(){
+      // 非完整 SQL 美化，仅作简单缩进：在逗号和关键字处换行
+      let s = getInput();
+      s = s.replace(/\s+/g,' ');
+      s = s.replace(/\s+(FROM|WHERE|GROUP BY|ORDER BY|LIMIT|LEFT JOIN|RIGHT JOIN|INNER JOIN)\s+/ig,'\n$1 ');
+      s = s.replace(/\s*,\s*/g,',\n  ');
+      setOutput(s.trim())
+    }
+
+    // 文件操作
+    function doLoadFile(){ const f = document.getElementById('fileInput').files[0]; if(!f) return alert('请选择一个文件'); const reader = new FileReader(); reader.onload = e=>{ document.getElementById('input').value = e.target.result }; reader.readAsText(f) }
+    function doCopyOutput(){ const t = document.getElementById('output').textContent; navigator.clipboard.writeText(t).then(()=>alert('已复制到剪贴板')) }
+    function doDownloadOutput(){ const a = document.createElement('a'); const blob = new Blob([document.getElementById('output').textContent], {type:'text/plain;charset=utf-8'}); a.href = URL.createObjectURL(blob); a.download = 'output.txt'; a.click(); URL.revokeObjectURL(a.href) }
+
+    // 页面小功能：把输入也快速复制到输出
+    document.getElementById('input').addEventListener('keydown', (e)=>{ if (e.ctrlKey && e.key==='Enter'){ setOutput(getInput()) } })
+  </script>
+</body>
+</html>
